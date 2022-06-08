@@ -301,6 +301,7 @@ function App(props) {
       localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "stake");
       localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"remain", JSON.stringify(rests));  
       setcurState("stake");
+      getNfts();
     } catch (err) {
       console.log("Transaction error: ", err);
     }
@@ -414,6 +415,23 @@ function App(props) {
       );
       localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "unstake");
       setcurState("unstake");
+      let rem = [];
+      for(const rm of remainings){
+        if(rm.pubkey === obj.pubkey) {
+          let tmp = rm;
+          tmp.name = 'addWorrior';
+          tmp.image = './plus.png';
+          rem.push(tmp);
+        }else {
+          rem.push(rm);
+          if(rm.name != 'addWorrior'){
+            localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "claim");
+            setcurState('claim');
+          }
+        }
+      }
+      setRemainings(rem);
+      getNfts();
     } catch (err) {
       console.log("Transaction error: ", err);
     }
