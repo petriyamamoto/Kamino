@@ -1,9 +1,8 @@
 import './App.css';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { getParsedNftAccountsByOwner, isValidSolanaAddress, createConnectionConfig, } from "@nfteyez/sol-rayz";
-import { Col, Row, Button, Form, Card, Badge, FormControl } from "react-bootstrap";
-import AlertDismissible from './alert/alertDismissible';
+import { Col, Row } from "react-bootstrap";
 
 import { Connection, PublicKey } from '@solana/web3.js';
 import {
@@ -11,6 +10,9 @@ import {
 } from '@project-serum/anchor';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import idl from './idl.json';
+import Mynfs from './Mynft';
+import Stakenft from './Stakenft';
+import Opbar from './Opbar';
 const SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = new PublicKey(
   'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
 );
@@ -39,59 +41,51 @@ const gameQuest = [
     kage: 4,
   },
 ];
-let userStakingIndex = 0;
+
+let provider = [];
 let program = [];
 let stakingPubkey = [];
 let stakingBump = [];
 let auryVaultPubkey, auryVaultBump;
-let userStakingCounterPubkey, userStakingCounterBump;
-let userStakingPubkey, userStakingBump;
 let userAuryTokenAccount;
-let idx = 0;
+let userStakingCounterPubkey, userStakingCounterBump;
+let userStakingIndex = 0;
+let userStakingPubkey, userStakingBump;
 
 function App(props) {
   const { publicKey } = useWallet();
   const { connection } = props;
   const wallet = useWallet();
-  const [curQuest, setcurQuest] = useState(gameQuest[0]);
 
-  // state change
+// state change
   useEffect(() => {
     setNfts([]);
-    setView("nft-grid");
     setGroupedNfts([]);
     setShow(false);
      if (publicKey) {
-       initRemainings();
-       getNfts();
-       initialize();
+        getNfts();
+        initialize();
      }
-  }, [publicKey, connection, curQuest]);
+  }, [publicKey, connection]);
 
   const [nfts, setNfts] = useState([]);
   const [groupedNfts, setGroupedNfts] = useState([]);
-  const [view, setView] = useState('collection');
   //alert props
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [show, setShow] = useState(false);
-
   //loading props
   const [loading, setLoading] = useState(false);
 
+  const [curQuest, setcurQuest] = useState(gameQuest[0]);
   const [curState, setcurState] = useState('unstake');
   const [remainings, setRemainings] = useState([]);
-  const [provider, setProvider] = useState([]);
-  const [timer, setCounter] = useState(0);
-  const [timer1, setCounter1] = useState(0);
-  const [timer2, setCounter2] = useState(0);
+  const [curtime, setCurtime] = useState(gameQuest[0].time);
   
-  // const getNfts = async (e) => {
-  //   e.preventDefault();
   async function getProvider() {
     /* create the provider and return it to the caller */
     /* network set to local network for now */
-    const network = "https://api.devnet.solana.com";
+    const network = "https://metaplex.devnet.rpcpool.com";//https://api.devnet.solana.com
     const connection = new Connection(network, opts.preflightCommitment);
 
     const provider = new Provider(
@@ -102,63 +96,151 @@ function App(props) {
 
   function clock(tt) {
     let t = tt - 1;
-    console.log('tt:', t);
     if(t > 0) {
-      setCounter(t);
       setTimeout(() => {
         clock(t);
-      }, 3000);
+      }, 1000);
     }else{
-      setCounter(0);
-      localStorage.setItem(provider.wallet.publicKey.toString()+gameQuest[0].index+"state", "claim");
-      setcurState('claim');
+      localStorage.setItem(provider.wallet.publicKey.toString()+"1state", "claim");
+      if(curQuest.index === 1) {
+        setcurState('claim');
+      }
+    }
+    if(curQuest.index === 1) {
+      setCurtime(t);
     }
   }
 
   function clock1(tt) {
     let t = tt - 1;
-    console.log('tt:', t);
     if(t > 0) {
-      setCounter1(t);
       setTimeout(() => {
         clock1(t);
-      }, 3000);
+      }, 1000);
     }else{
-      setCounter1(0);
-      localStorage.setItem(provider.wallet.publicKey.toString()+gameQuest[1].index+"state", "claim");
-      setcurState('claim');
+      localStorage.setItem(provider.wallet.publicKey.toString()+"2state", "claim");
+      if(curQuest.index === 2) {
+        setcurState('claim');
+      }
+    }
+    if(curQuest.index === 2) {
+      setCurtime(t);
     }
   }
+
   function clock2(tt) {
     let t = tt - 1;
-    console.log('tt:', t);
     if(t > 0) {
-      setCounter2(t);
       setTimeout(() => {
         clock2(t);
-      }, 3000);
+      }, 1000);
     }else{
-      setCounter2(0);
-      localStorage.setItem(provider.wallet.publicKey.toString()+gameQuest[2].index+"state", "claim");
-      setcurState('claim');
+      localStorage.setItem(provider.wallet.publicKey.toString()+"3state", "claim");
+      if(curQuest.index === 3) {
+        setcurState('claim');
+      }
+    }
+    if(curQuest.index === 3) {
+      setCurtime(t);
     }
   }
 
-  async function prevQuest() {
-    if(idx > 0)
-      idx--;
-    setcurQuest(gameQuest[idx]);
+  async function addRemainings(_nft) {
+    let tmp_nft = [];
+    for(const _tmp of nfts) {
+      if(_tmp.mint !== _nft.mint) {
+        tmp_nft.push(_tmp);
+      }
+    }
+    setNfts(tmp_nft);
+    let tmp = [];
+    for(const _t of remainings) {
+      tmp.push(_t);
+    }
+    const pk = new PublicKey(_nft.mint);
+    const [pdaAddress] = await web3.PublicKey.findProgramAddress(
+        [
+            provider.wallet.publicKey.toBuffer(),
+            TOKEN_PROGRAM_ID.toBuffer(),
+            pk.toBuffer(),
+        ],
+        SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
+    );
+    const [pubkey, bump] = await web3.PublicKey.findProgramAddress(
+      [provider.wallet.publicKey.toBuffer(), pk.toBuffer()],
+      program.programId
+    );
+    _nft.pda = pdaAddress;
+    _nft.pk = pk;
+    _nft.pubkey = pubkey;
+    _nft.bump = bump
+    tmp.push(_nft);
+    setRemainings(tmp);
   }
 
-  async function nextQuest() {
-    if(idx < 2)
-      idx++;
-    setcurQuest(gameQuest[idx]);
-  }
+  async function getNfts() {
+    setShow(false);
+    let address = publicKey;
+    if (!isValidSolanaAddress(address)) {
+      setTitle("Invalid address");
+      setMessage("Please enter a valid Solana address or Connect your wallet");
+      setLoading(false);
+      setShow(true);
+      return;
+    }
+
+    const connect = createConnectionConfig(connection);
+
+    setLoading(true);
+    const nftArray = await getParsedNftAccountsByOwner({
+      publicAddress: address,
+      connection: connect,
+      serialization: true,
+    });
+
+
+    if (nftArray.length === 0) {
+      setTitle("No NFTs found in " + props.title);
+      setMessage("No NFTs found for address: " + address);
+      setLoading(false);
+      setShow(true);
+      return;
+    }
+
+    const metadatas = await fetchMetadata(nftArray);
+    var group = {};
+
+    for (const nft of metadatas) {
+      if (group.hasOwnProperty(nft.data.symbol)) {
+        group[nft.data.symbol].push(nft);
+      } else {
+        group[nft.data.symbol] = [nft];
+      }
+    }
+    setGroupedNfts(group);
+  
+    setLoading(false);
+    return setNfts(metadatas);
+  };
+
+  const fetchMetadata = async (nftArray) => {
+    let metadatas = [];
+    for (const nft of nftArray) {
+      try {
+        await fetch(nft.data.uri)
+        .then((response) => response.json())
+        .then((meta) => { 
+          metadatas.push({...meta, ...nft});
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    return metadatas;
+  };
 
   async function initialize() {
-    let pro = await getProvider();
-    setProvider(pro);
+    provider = await getProvider();
     program = new Program(idl, programID, provider);
     console.log('PID:',program.programId.toString());
 
@@ -181,28 +263,42 @@ function App(props) {
       program.programId
     );
     console.log('USCA:', userStakingCounterPubkey.toString(), userStakingCounterBump);
+    [userAuryTokenAccount] = await web3.PublicKey.findProgramAddress(
+      [
+        provider.wallet.publicKey.toBuffer(),
+        TOKEN_PROGRAM_ID.toBuffer(),
+        auryMintPubkey.toBuffer(),
+      ],
+      SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
+    );
+    console.log("KageATA:",userAuryTokenAccount.toString());
 
+    changeStakingIndex(1);
+  }
+
+  async function changeStakingIndex(idx) {
     const curStakeIdx = 
         await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
     if(curStakeIdx.counter > 0) {
       userStakingIndex = curStakeIdx.counter;
     }        
     console.log("sugIdx:", curStakeIdx.counter);
-    let cstate = localStorage.getItem(provider.wallet.publicKey.toString()+curQuest.index+"state");
+    let cstate = localStorage.getItem(provider.wallet.publicKey.toString()+idx+"state");
     if(cstate){
       setcurState(cstate);
     }else{
       setcurState('unstake');
       cstate = 'unstake';
     }
-    if(cstate && cstate != "unstake") {
-      userStakingIndex = localStorage.getItem(provider.wallet.publicKey.toString()+curQuest.index);
-      let rests = localStorage.getItem(provider.wallet.publicKey.toString()+curQuest.index+"remain");
+    if(cstate && cstate !== "unstake") {
+      userStakingIndex = localStorage.getItem(provider.wallet.publicKey.toString()+idx);
+      let rests = localStorage.getItem(provider.wallet.publicKey.toString()+idx+"remain");
       setRemainings(JSON.parse(rests));
-    }
+      console.log('remains:', rests);
+    }else console.log('remains:', remainings);
     console.log('USIndex:', userStakingIndex);
-    console.log('remains:', remainings);
     console.log('state:', cstate);
+    setcurState(cstate);
     [userStakingPubkey, userStakingBump] =
     await web3.PublicKey.findProgramAddress(
       [
@@ -216,28 +312,18 @@ function App(props) {
       program.programId
     );
     console.log('userSA:', userStakingPubkey.toString(), userStakingBump);
-    [userAuryTokenAccount] = await web3.PublicKey.findProgramAddress(
-      [
-        provider.wallet.publicKey.toBuffer(),
-        TOKEN_PROGRAM_ID.toBuffer(),
-        auryMintPubkey.toBuffer(),
-      ],
-      SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
-    );
-    console.log("KageATA:",userAuryTokenAccount.toString());
-    let ti = gameQuest[idx].time;
-    if(idx === 0 && curState === 'unstake')
-      setCounter(ti);
-    if(idx === 1 && curState === 'unstake')
-      setCounter1(ti);
-    if(idx === 2 && curState === 'unstake')
-      setCounter2(ti);
-          
   }
 
-  async function prepareRemains() {
-    const usdata = await program.account.userStakingAccount.fetch(userStakingPubkey);
-    console.log(usdata, usdata.nftMintKeys[0].toString(),usdata.nftMintKeys);
+  function changeQuest(idx) {
+    getNfts();
+    setRemainings([]);
+    setcurQuest(gameQuest[idx-1]);
+    changeStakingIndex(idx);
+    if(curState === 'lock') {
+
+    }else {
+      setCurtime(gameQuest[idx-1].time);
+    }
   }
 
   async function stake() {
@@ -277,7 +363,7 @@ function App(props) {
       rests.push(rest);
     }
     let nftVaultBumps = Buffer.from(nftVaultBump);
-    if(remainingAccounts.length == 0) return;
+    if(remainingAccounts.length === 0) return;
     try {
       await program.rpc.stake(
         nftVaultBumps,
@@ -301,14 +387,9 @@ function App(props) {
       localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "stake");
       localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"remain", JSON.stringify(rests));  
       setcurState("stake");
-      getNfts();
     } catch (err) {
       console.log("Transaction error: ", err);
     }
-    // localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index, userStakingIndex);
-    // localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "stake"); 
-    // localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"remain", JSON.stringify(rests)); 
-    // setcurState("stake");
     console.log("Stake");
   }
 
@@ -338,23 +419,9 @@ function App(props) {
         });
       localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "lock");
       setcurState("lock");
-      if(curQuest.index == 1)
-        clock(timer);
-      if(curQuest.index == 2)
-        clock1(timer1);
-      if(curQuest.index == 3)
-        clock2(timer2);
     } catch (err) {
       console.log("Transaction error: ", err);
     }
-    // localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "lock");
-    // setcurState("lock");
-    // if(curQuest.index == 1)
-    //   clock(timer);
-    // if(curQuest.index == 2)
-    //   clock1(timer1);
-    // if(curQuest.index == 3)
-    //   clock2(timer2);
     console.log('lock');
   }
 
@@ -380,8 +447,6 @@ function App(props) {
     } catch (err) {
       console.log("Transaction error: ", err);
     }
-    // localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "claim");
-    // setcurState("claim");
     console.log('claim');
   }
 
@@ -413,137 +478,23 @@ function App(props) {
           remainingAccounts,
         }
       );
-      localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "unstake");
-      setcurState("unstake");
       let rem = [];
       for(const rm of remainings){
-        if(rm.pubkey === obj.pubkey) {
-          let tmp = rm;
-          tmp.name = 'addWorrior';
-          tmp.image = './plus.png';
-          rem.push(tmp);
-        }else {
+        if(rm.pubkey !== obj.pubkey) {
           rem.push(rm);
-          if(rm.name != 'addWorrior'){
-            localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "claim");
-            setcurState('claim');
-          }
         }
+      }
+      if(rem.length === 0){
+        localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "unstake");
+        setcurState('unstake');
       }
       setRemainings(rem);
       getNfts();
     } catch (err) {
       console.log("Transaction error: ", err);
     }
-
-    // localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "unstake");
-    // setcurState("unstake");
     console.log('unstake');
   }
-
-  async function addRemainings(_nft) {
-    let tmp = [];
-    let flag = true;
-    for(const r of remainings) {
-      if(r.name === "addWorrior" && flag) {
-        const pk = new PublicKey(_nft.mint);
-        _nft.pk = pk;
-        const [pdaAddress] = await web3.PublicKey.findProgramAddress(
-            [
-                provider.wallet.publicKey.toBuffer(),
-                TOKEN_PROGRAM_ID.toBuffer(),
-                pk.toBuffer(),
-            ],
-            SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
-        );
-        _nft.pda = pdaAddress;
-        const [pubkey, bump] = await web3.PublicKey.findProgramAddress(
-          [provider.wallet.publicKey.toBuffer(), pk.toBuffer()],
-          program.programId
-        );
-        _nft.pubkey = pubkey;
-        _nft.bump = bump
-        tmp.push(_nft);
-        flag = false;
-      }else {
-        tmp.push(r)
-      }  
-    }
-    setRemainings(tmp);
-  }
-
-  async function initRemainings() {
-    let tmp = [];
-    for(let i = 0; i < 4; i++) {
-      let t = [];
-      t.image = './plus.png';
-      t.name = 'addWorrior';
-      tmp.push(t);
-    }
-    setRemainings(tmp);
-  }
-
-  async function getNfts() {
-    setShow(false);
-    let address = publicKey;
-    if (!isValidSolanaAddress(address)) {
-      setTitle("Invalid address");
-      setMessage("Please enter a valid Solana address or Connect your wallet");
-      setLoading(false);
-      setShow(true);
-      return;
-    }
-
-    const connect = createConnectionConfig(connection);
-
-    setLoading(true);
-    const nftArray = await getParsedNftAccountsByOwner({
-      publicAddress: address,
-      connection: connect,
-      serialization: true,
-    });
-
-
-    if (nftArray.length === 0) {
-      setTitle("No NFTs found in " + props.title);
-      setMessage("No NFTs found for address: " + address);
-      setLoading(false);
-      setView('collection');
-      setShow(true);
-      return;
-    }
-
-    const metadatas = await fetchMetadata(nftArray);
-    var group = {};
-
-    for (const nft of metadatas) {
-      if (group.hasOwnProperty(nft.data.symbol)) {
-        group[nft.data.symbol].push(nft);
-      } else {
-        group[nft.data.symbol] = [nft];
-      }
-    }
-    setGroupedNfts(group);
-  
-    setLoading(false);
-    return setNfts(metadatas);
-  };
-
-  const fetchMetadata = async (nftArray) => {
-    let metadatas = [];
-    for (const nft of nftArray) {
-      try {
-        await fetch(nft.data.uri)
-        .then((response) => response.json())
-        .then((meta) => { 
-          metadatas.push({...meta, ...nft});
-        });
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    return metadatas;
-  };
 
   return (
     <div className="main">
@@ -552,178 +503,34 @@ function App(props) {
         <Col lg="2">
         </Col>
       </Row>
-      
-      {
-        <Row className='h-64 border-2 rounded-xl border-black'>
-          {loading && (
-            <div className="loading">
-              <img src="" alt="loading..." className='' />
-            </div>
-          )}
-          {show && (
-            <AlertDismissible title={title} message={message} setShow={setShow} />
-          )}
-
-          {!loading &&
-            view === "nft-grid" &&
-            nfts.map((metadata, index) => (
-              <Col xs="12" md="6" lg="2" key={index}>
-                <Card
-                  onClick={() => {
-                    addRemainings(nfts[index]);
-                  }}
-                  className="imageGrid"
-                  lg="3"
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#2B3964",
-                    padding: "10px",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <Card.Img
-                    variant="top"
-                    src={metadata?.image}
-                    alt={metadata?.name}
-                  />
-                  <Card.Body>
-                    <Card.Title style={{ color: "#fff" }}>
-                      {metadata?.name}
-                    </Card.Title>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-        </Row>
-      }
+      <Mynfs 
+        loading={loading}
+        title={title}
+        message={message}
+        setShow={setShow}
+        nfts={nfts}
+        show={show}
+        addRemainings={addRemainings}
+      />
       <Row className="inputForm">
         <Col lg="10">Here is your squad. *You can select above NFTs to make a squad.*</Col>
         <Col lg="2">
         </Col>
       </Row>
-      <Row className='h-64 border-2 rounded-xl border-black'>
-        <Col xs="12" md="6" lg="2">
-          <Card
-            onClick={() => {
-              if(curState === 'claim' && remainings[0] && remainings[0].name && remainings[0].name != 'addWorrior')
-                unStake(remainings[0]);
-            }}
-            className="imageGrid"
-            lg="3"
-            style={{
-              width: "100%",
-              backgroundColor: "#2B3964",
-              padding: "10px",
-              borderRadius: "10px",
-            }}
-          >
-            <Card.Img
-              variant="top"
-              src={remainings[0]?.image}
-              alt={remainings[0]?.name}
-            />
-            <Card.Body>
-              <Card.Title style={{ color: "#fff" }}>
-                {remainings[0]?.name}
-              </Card.Title>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col xs="12" md="6" lg="2">
-          <Card
-            onClick={() => {
-              if(curState === 'claim' && remainings[1] && remainings[1].name && remainings[1].name != 'addWorrior')
-                unStake(remainings[1]);
-            }}
-            className="imageGrid"
-            lg="3"
-            style={{
-              width: "100%",
-              backgroundColor: "#2B3964",
-              padding: "10px",
-              borderRadius: "10px",
-            }}
-          >
-            <Card.Img
-              variant="top"
-              src={remainings[1]?.image}
-              alt={remainings[1]?.name}
-            />
-            <Card.Body>
-              <Card.Title style={{ color: "#fff" }}>
-                {remainings[1]?.name}
-              </Card.Title>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col xs="12" md="6" lg="2">
-          <Card
-            onClick={() => {
-              if(curState === 'claim' && remainings[2] && remainings[2].name && remainings[2].name != 'addWorrior')
-                unStake(remainings[2]);
-            }}
-            className="imageGrid"
-            lg="3"
-            style={{
-              width: "100%",
-              backgroundColor: "#2B3964",
-              padding: "10px",
-              borderRadius: "10px",
-            }}
-          >
-            <Card.Img
-              variant="top"
-              src={remainings[2]?.image}
-              alt={remainings[2]?.name}
-            />
-            <Card.Body>
-              <Card.Title style={{ color: "#fff" }}>
-                {remainings[2]?.name}
-              </Card.Title>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      {
-        <Row className='border-2 rounded-lg border-black mt-3 p-2'>
-          <Col lg='2' className='inline-flex'>
-            <Button onClick={prevQuest}>Prev</Button>
-            <div className='mx-2'><p>{curQuest.title}</p><p>{curQuest.kage}$KAGE</p></div>
-            <Button onClick={nextQuest}>Next</Button>
-          </Col>
-          {curQuest.index === 1 && (
-          <Col lg='2'>
-            <h1 className='text-3xl'>Time <b>00:00:{timer}</b></h1>
-          </Col>
-          )}
-          {curQuest.index === 2 && (
-          <Col lg='2'>
-            <h1 className='text-3xl'>Time <b>00:00:{timer1}</b></h1>
-          </Col>
-          )}
-          {curQuest.index === 3 && (
-          <Col lg='2'>
-            <h1 className='text-3xl'>Time <b>00:00:{timer2}</b></h1>
-          </Col>
-          )}
-          {curState === "unstake" && (
-          <Col lg='1'>
-            <Button onClick={stake}>Stake</Button>
-          </Col>
-          )}
-          {curState === "stake" && (
-          <Col lg='1'>
-            <Button onClick={lockStake}>Raid</Button>
-          </Col>
-          )}
-          {curState === "claim" && (
-          <Col lg='4'>
-            <div className='mx-2'><p>3$KAGE</p></div>
-            <Button onClick={claim}>Claim</Button>
-          </Col>
-          )}
-        </Row>
-      }
+      <Stakenft
+        loading={loading}
+        remainings={remainings}
+        unStake={unStake}
+      />
+      <Opbar 
+        stake={stake}
+        lockStake={lockStake}
+        claim={claim}
+        changeQuest={changeQuest}
+        curQuest={curQuest}
+        curtime={curtime}
+        curState={curState}
+      />
     </div>
   );
 }
