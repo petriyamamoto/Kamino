@@ -278,8 +278,13 @@ function App(props) {
   }
 
   async function changeStakingIndex(idx) {
-    const curStakeIdx = 
-        await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
+    const curStakeIdx = 0;
+    try {
+      curStakeIdx = await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
+    }
+    catch{
+      console.log('first stake');
+    }
     if(curStakeIdx.counter > 0) {
       userStakingIndex = curStakeIdx.counter;
     }        
