@@ -56,7 +56,7 @@ function App(props) {
   const { publicKey } = useWallet();
   const { connection } = props;
   const wallet = useWallet();
-
+  
 // state change
   useEffect(() => {
     setNfts([]);
@@ -243,7 +243,7 @@ function App(props) {
     provider = await getProvider();
     program = new Program(idl, programID, provider);
     console.log('PID:',program.programId.toString());
-
+ 
     [stakingPubkey, stakingBump] =
     await web3.PublicKey.findProgramAddress(
       [Buffer.from(utils.bytes.utf8.encode('nft_staking'))],
@@ -277,8 +277,13 @@ function App(props) {
   }
 
   async function changeStakingIndex(idx) {
-    const curStakeIdx = 
-        await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
+    const curStakeIdx = 0;
+    try{
+      const curStakeIdx = 
+          await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
+    }catch {
+      console.log('first stake.');
+    }
     if(curStakeIdx.counter > 0) {
       userStakingIndex = curStakeIdx.counter;
     }        
