@@ -53,20 +53,19 @@ let userStakingIndex = 0;
 let userStakingPubkey, userStakingBump;
 
 function App(props) {
-  const { publicKey } = useWallet();
-  const { connection } = props;
   const wallet = useWallet();
+  const { connection } = props;
   
 // state change
   useEffect(() => {
     setNfts([]);
     setGroupedNfts([]);
     setShow(false);
-     if (publicKey) {
+     if (wallet) {
         getNfts();
         initialize();
      }
-  }, [publicKey, connection]);
+  }, [wallet, connection]);
 
   const [nfts, setNfts] = useState([]);
   const [groupedNfts, setGroupedNfts] = useState([]);
@@ -180,7 +179,7 @@ function App(props) {
 
   async function getNfts() {
     setShow(false);
-    let address = publicKey;
+    let address = wallet.publicKey;
     if (!isValidSolanaAddress(address)) {
       setTitle("Invalid address");
       setMessage("Please enter a valid Solana address or Connect your wallet");
@@ -277,13 +276,8 @@ function App(props) {
   }
 
   async function changeStakingIndex(idx) {
-    const curStakeIdx = 0;
-    try{
-      const curStakeIdx = 
-          await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
-    }catch {
-      console.log('first stake.');
-    }
+    const curStakeIdx = 
+        await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
     if(curStakeIdx.counter > 0) {
       userStakingIndex = curStakeIdx.counter;
     }        
