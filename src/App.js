@@ -239,7 +239,9 @@ function App(props) {
   };
 
   async function initialize() {
+    console.log('init');
     provider = await getProvider();
+    console.log("pr:", provider);
     program = new Program(idl, programID, provider);
     console.log('PID:',program.programId.toString());
  
