@@ -241,7 +241,7 @@ function App(props) {
   async function initialize() {
     console.log('init');
     provider = await getProvider();
-    console.log("pr:", provider);
+    console.log("pr:", provider.wallet.publicKey);
     program = new Program(idl, programID, provider);
     console.log('PID:',program.programId.toString());
  
@@ -517,6 +517,7 @@ function App(props) {
       <Row className="inputForm">
         <Col lg="10">Here are your NFTs. *Please do select devnet.*</Col>
         <Col lg="2">
+          <button onClick={initialize}>init</button>
         </Col>
       </Row>
       <Mynfs 
