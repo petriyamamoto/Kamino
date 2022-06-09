@@ -451,6 +451,21 @@ function App(props) {
   }
 
   async function unStake(obj) {
+    if(curState === 'unstake') {
+      let _nfts = [];
+      let _remains = [];
+      for(const t of remainings) {
+        if(t.pubkey !== obj.pubkey)
+          _remains.push(t);
+      }
+      for(const t of nfts) {
+        _nfts.push(t);
+      }
+      _nfts.push(obj);
+      setNfts(_nfts);
+      setRemainings(_remains);
+    }
+    if(curState !== 'claim') return;
     let remainingAccounts = [
       {
         pubkey: new PublicKey(obj.pda),
