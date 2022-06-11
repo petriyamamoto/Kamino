@@ -25,9 +25,21 @@ function Opbar(props) {
             <div className='mx-3 text-2xl'><p>{props.curQuest.title}</p><p>{props.curQuest.kage}$KAGE</p></div>
             <Button onClick={nextQuest}>Next</Button>
           </Col>
+          {props.clockflag === 1 && (
           <Col lg='3'>
             <h1 className='text-3xl'>Time <b>00:00:{props.curtime}</b></h1>
           </Col>
+          )}
+          {props.clockflag === 2 && (
+          <Col lg='3'>
+            <h1 className='text-3xl'>Time <b>00:00:{props.curtime1}</b></h1>
+          </Col>
+          )}
+          {props.clockflag === 3 && (
+          <Col lg='3'>
+            <h1 className='text-3xl'>Time <b>00:00:{props.curtime2}</b></h1>
+          </Col>
+          )}
           {props.curState === "unstake" && (
           <Col lg='1'>
             <Button onClick={props.stake}>Stake</Button>
@@ -38,7 +50,7 @@ function Opbar(props) {
             <Button onClick={props.lockStake}>Raid</Button>
           </Col>
           )}
-          {props.curState === "lock" && (
+          {props.curState === "claim" && (
           <Col lg='4'>
             <div className='mx-2'><p>3$KAGE</p></div>
             <Button onClick={props.claim}>Claim</Button>

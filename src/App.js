@@ -50,6 +50,7 @@ let auryVaultPubkey, auryVaultBump;
 let userAuryTokenAccount;
 let userStakingCounterPubkey, userStakingCounterBump;
 let userStakingIndex = 0;
+let userStakingCounter = 0;
 let userStakingPubkey, userStakingBump;
 
 function App(props) {
@@ -80,6 +81,9 @@ function App(props) {
   const [curState, setcurState] = useState('unstake');
   const [remainings, setRemainings] = useState([]);
   const [curtime, setCurtime] = useState(gameQuest[0].time);
+  const [curtime1, setCurtime1] = useState(gameQuest[1].time);
+  const [curtime2, setCurtime2] = useState(gameQuest[2].time);
+  const [clockflag, setClock] = useState(1);
   
   async function getProvider() {
     /* create the provider and return it to the caller */
@@ -97,16 +101,15 @@ function App(props) {
     let t = tt - 1;
     if(t > 0) {
       setTimeout(() => {
+        setCurtime(t);
         clock(t);
       }, 1000);
     }else{
+      setCurtime(0);
       localStorage.setItem(provider.wallet.publicKey.toString()+"1state", "claim");
-      if(curQuest.index === 1) {
+      if(clockflag === 1) {
         setcurState('claim');
       }
-    }
-    if(curQuest.index === 1) {
-      setCurtime(t);
     }
   }
 
@@ -114,16 +117,15 @@ function App(props) {
     let t = tt - 1;
     if(t > 0) {
       setTimeout(() => {
+        setCurtime1(t);
         clock1(t);
       }, 1000);
     }else{
+      setCurtime1(0);
       localStorage.setItem(provider.wallet.publicKey.toString()+"2state", "claim");
-      if(curQuest.index === 2) {
+      if(clockflag === 2) {
         setcurState('claim');
       }
-    }
-    if(curQuest.index === 2) {
-      setCurtime(t);
     }
   }
 
@@ -131,20 +133,20 @@ function App(props) {
     let t = tt - 1;
     if(t > 0) {
       setTimeout(() => {
+        setCurtime2(t);
         clock2(t);
       }, 1000);
     }else{
+      setCurtime2(0);
       localStorage.setItem(provider.wallet.publicKey.toString()+"3state", "claim");
-      if(curQuest.index === 3) {
+      if(clockflag === 3) {
         setcurState('claim');
       }
-    }
-    if(curQuest.index === 3) {
-      setCurtime(t);
     }
   }
 
   async function addRemainings(_nft) {
+    if(curState !== 'unstake') return;
     let tmp_nft = [];
     for(const _tmp of nfts) {
       if(_tmp.mint !== _nft.mint) {
@@ -263,6 +265,13 @@ function App(props) {
       [provider.wallet.publicKey.toBuffer()],
       program.programId
     );
+    try{
+      const curStakeIdx = await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
+      userStakingCounter = curStakeIdx.counter;
+    }catch{
+      console.log('first Stake!!!');
+    }
+    console.log('USI:', userStakingCounter);
     console.log('USCA:', userStakingCounterPubkey.toString(), userStakingCounterBump);
     [userAuryTokenAccount] = await web3.PublicKey.findProgramAddress(
       [
@@ -273,22 +282,21 @@ function App(props) {
       SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
     );
     console.log("KageATA:",userAuryTokenAccount.toString());
+    let ii = 1;
+    for(const cg of gameQuest) {
+      let tc = localStorage.getItem(provider.wallet.publicKey.toString()+cg.index+"state");
+      if(tc === 'stake') {
+        setcurQuest(cg);
+        ii = cg.index;
+        break;
+      }
+    }
 
-    changeStakingIndex(1);
+    changeStakingIndex(ii);
   }
 
   async function changeStakingIndex(idx) {
-    const curStakeIdx = 0;
-    try {
-      curStakeIdx = await program.account.userStakingCounterAccount.fetch(userStakingCounterPubkey);
-    }
-    catch{
-      console.log('first stake');
-    }
-    if(curStakeIdx.counter > 0) {
-      userStakingIndex = curStakeIdx.counter;
-    }        
-    console.log("sugIdx:", curStakeIdx.counter);
+    userStakingIndex = userStakingCounter;
     let cstate = localStorage.getItem(provider.wallet.publicKey.toString()+idx+"state");
     if(cstate){
       setcurState(cstate);
@@ -302,7 +310,7 @@ function App(props) {
       setRemainings(JSON.parse(rests));
       console.log('remains:', rests);
     }else console.log('remains:', remainings);
-    console.log('USIndex:', userStakingIndex);
+    console.log('USIndex:', userStakingIndex, userStakingCounter);
     console.log('state:', cstate);
     setcurState(cstate);
     [userStakingPubkey, userStakingBump] =
@@ -320,13 +328,25 @@ function App(props) {
     console.log('userSA:', userStakingPubkey.toString(), userStakingBump);
   }
 
-  function changeQuest(idx) {
+  async function changeQuest(idx) {
+    setClock(idx);
     getNfts();
     setRemainings([]);
     setcurQuest(gameQuest[idx-1]);
     changeStakingIndex(idx);
-    if(curState === 'lock') {
-
+    let cs = localStorage.getItem(provider.wallet.publicKey.toString()+idx+"state");
+    if(cs === 'lock') {
+      // const usInfo = await program.account.userStakingAccount.fetch(userStakingPubkey);
+      // const network = "https://metaplex.devnet.rpcpool.com";//https://api.devnet.solana.com
+      // const connection = new Connection(network, opts.preflightCommitment);
+      // let slot = await connection.getSlot();
+      // let blockTime = await connection.getBlockTime(slot);
+      // console.log('btime:', blockTime, usInfo.stakingAt.toString(), usInfo.stakingPeriod);
+      // let restime = usInfo.stakingPeriod - blockTime - usInfo.stakingAt;
+      // console.log('restime', restime);
+      // if(restime > 0) {
+      //   console.log('lets start!');
+      // }
     }else {
       setCurtime(gameQuest[idx-1].time);
     }
@@ -424,7 +444,15 @@ function App(props) {
           },
         });
       localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "lock");
+      userStakingCounter += 1; 
       setcurState("lock");
+      setClock(curQuest.index);
+      if(curQuest.index === 1)
+        clock(curQuest.time);
+      if(curQuest.index === 2)
+        clock1(curQuest.time);
+      if(curQuest.index === 3)
+        clock2(curQuest.time);
     } catch (err) {
       console.log("Transaction error: ", err);
     }
@@ -522,7 +550,6 @@ function App(props) {
       <Row className="inputForm">
         <Col lg="10">Here are your NFTs. *Please do select devnet.*</Col>
         <Col lg="2">
-          <button onClick={initialize}>init</button>
         </Col>
       </Row>
       <Mynfs 
@@ -551,6 +578,9 @@ function App(props) {
         changeQuest={changeQuest}
         curQuest={curQuest}
         curtime={curtime}
+        curtime1={curtime1}
+        curtime2={curtime2}
+        clockflag={clockflag}
         curState={curState}
       />
     </div>

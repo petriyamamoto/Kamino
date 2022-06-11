@@ -40,8 +40,8 @@ const Navigationbar = (props) => {
               title={props.title}
               onSelect={(evt) => onChange(evt)}
             >
-              <Dropdown.Item eventKey="mainnet">Mainnet</Dropdown.Item>
               <Dropdown.Item eventKey="devnet">Devnet</Dropdown.Item>
+              <Dropdown.Item eventKey="mainnet">Mainnet</Dropdown.Item>
               <Dropdown.Item eventKey="testnet">Testnet</Dropdown.Item>
             </DropdownButton>
           </Nav>
