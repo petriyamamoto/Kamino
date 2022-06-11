@@ -538,6 +538,7 @@ function App(props) {
       if(rem.length === 0){
         localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"state", "unstake");
         setcurState('unstake');
+        changeStakingIndex(curQuest.index);
         if(curQuest.index === 1) setCurtime(curQuest.time);
         if(curQuest.index === 2) setCurtime1(curQuest.time);
         if(curQuest.index === 3) setCurtime2(curQuest.time);
