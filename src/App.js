@@ -25,19 +25,19 @@ const gameQuest = [
   {
     index: 1,
     title: "QUEST 1",
-    time: 10,
+    time: 20,
     kage: 2,
   },
   {
     index: 2,
     title: "QUEST 2",
-    time: 15,
+    time: 100,
     kage: 3,
   },
   {
     index: 3,
     title: "QUEST 3",
-    time: 19,
+    time: 300,
     kage: 4,
   },
 ];
