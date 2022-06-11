@@ -348,7 +348,9 @@ function App(props) {
       //   console.log('lets start!');
       // }
     }else {
-      setCurtime(gameQuest[idx-1].time);
+      if(idx === 1) setCurtime(gameQuest[idx-1].time);
+      if(idx === 2) setCurtime1(gameQuest[idx-1].time);
+      if(idx === 3) setCurtime2(gameQuest[idx-1].time);
     }
   }
 
@@ -541,6 +543,7 @@ function App(props) {
         if(curQuest.index === 3) setCurtime2(curQuest.time);
       }
       setRemainings(rem);
+      localStorage.setItem(provider.wallet.publicKey.toString()+curQuest.index+"remain", JSON.stringify(rem));
       getNfts();
     } catch (err) {
       console.log("Transaction error: ", err);
